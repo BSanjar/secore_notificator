@@ -51,7 +51,7 @@ namespace NotificationWorker.Services
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
             var telegramSender = scope.ServiceProvider.GetRequiredService<TelegramSender>();
-            var whatsAppSender = scope.ServiceProvider.GetRequiredService<WhatsAppSender>();
+            var twilioWhatsAppSender = scope.ServiceProvider.GetRequiredService<TwilioWhatsAppSender>();
 
             // Выбираем пачку уведомлений со статусом "new"
             var notifications = await db.Notifications
@@ -86,7 +86,7 @@ namespace NotificationWorker.Services
                             if (!string.IsNullOrWhiteSpace(notification.ContactInfo))
                             {
                                 success = await emailSender.SendAsync(
-                                    notification.ContactInfo,
+                                    notification.ContactInfo.Trim(),
                                     notification.Subject,
                                     notification.Message ?? "");
                             }
@@ -105,7 +105,8 @@ namespace NotificationWorker.Services
                         case "whatsapp":
                             if (!string.IsNullOrWhiteSpace(notification.ContactInfo))
                             {
-                                success = await whatsAppSender.SendAsync(
+                                // Используется Twilio; WABA (WhatsAppSender) отложен из-за блокировок со стороны WhatsApp
+                                success = await twilioWhatsAppSender.SendAsync(
                                     notification.ContactInfo,
                                     notification.Subject,
                                     notification.Message ?? "");

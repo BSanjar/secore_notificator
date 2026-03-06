@@ -56,3 +56,14 @@ C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\obj\Debug\net7.0\refint\N
 C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\obj\Debug\net7.0\NotificationWorker.pdb
 C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\obj\Debug\net7.0\NotificationWorker.genruntimeconfig.cache
 C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\obj\Debug\net7.0\ref\NotificationWorker.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\obj\Debug\net7.0\NotificationWorker.sourcelink.json
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Microsoft.Bcl.AsyncInterfaces.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Microsoft.Bcl.Memory.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Microsoft.Bcl.TimeProvider.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Microsoft.IdentityModel.Abstractions.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Microsoft.IdentityModel.Logging.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Microsoft.IdentityModel.Tokens.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Newtonsoft.Json.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\System.IdentityModel.Tokens.Jwt.dll
+C:\Users\AzatAdmin\Documents\SECORE\NotificationWorker\bin\Debug\net7.0\Twilio.dll
