@@ -1,27 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\AzatAdmin\\Documents\\SECORE\\NotificationWorker\\NotificationWorker.csproj": {}
+    "C:\\disk\\sanjar\\BillingCom\\secore\\secoreNotificator\\NotificationWorker.csproj": {}
   },
   "projects": {
-    "C:\\Users\\AzatAdmin\\Documents\\SECORE\\NotificationWorker\\NotificationWorker.csproj": {
+    "C:\\disk\\sanjar\\BillingCom\\secore\\secoreNotificator\\NotificationWorker.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\AzatAdmin\\Documents\\SECORE\\NotificationWorker\\NotificationWorker.csproj",
+        "projectUniqueName": "C:\\disk\\sanjar\\BillingCom\\secore\\secoreNotificator\\NotificationWorker.csproj",
         "projectName": "NotificationWorker",
-        "projectPath": "C:\\Users\\AzatAdmin\\Documents\\SECORE\\NotificationWorker\\NotificationWorker.csproj",
-        "packagesPath": "C:\\Users\\AzatAdmin\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\AzatAdmin\\Documents\\SECORE\\NotificationWorker\\obj\\",
+        "projectPath": "C:\\disk\\sanjar\\BillingCom\\secore\\secoreNotificator\\NotificationWorker.csproj",
+        "packagesPath": "C:\\Users\\Sanjar\\.nuget\\packages\\",
+        "outputPath": "C:\\disk\\sanjar\\BillingCom\\secore\\secoreNotificator\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
-          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages",
-          "C:\\Program Files (x86)\\Microsoft\\Xamarin\\NuGet\\"
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\AzatAdmin\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Sanjar\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Xamarin.Offline.config"
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net7.0"
@@ -124,7 +122,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.310\\RuntimeIdentifierGraph.json"
         }
       }
     }
