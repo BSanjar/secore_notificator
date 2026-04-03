@@ -17,6 +17,11 @@ public partial class Organization
     /// </summary>
     public string? Organizationtype { get; set; }
 
+    /// <summary>
+    /// false — доступ заблокирован (истёк период подписки)
+    /// </summary>
+    public bool? IsActive { get; set; }
+
     public virtual ICollection<AgentCommission> AgentCommissions { get; } = new List<AgentCommission>();
 
     public virtual ICollection<OrgClientGroup> OrgClientGroups { get; } = new List<OrgClientGroup>();
@@ -28,6 +33,10 @@ public partial class Organization
     public virtual ICollection<OrganizationService> OrganizationServices { get; } = new List<OrganizationService>();
 
     public virtual OrganizationSetting? OrganizationSetting { get; set; }
+
+    public virtual OrganizationSubscription? OrganizationSubscription { get; set; }
+
+    public virtual ICollection<OrganizationSubscriptionPayment> OrganizationSubscriptionPayments { get; } = new List<OrganizationSubscriptionPayment>();
 
     public virtual ICollection<Role> Roles { get; } = new List<Role>();
 

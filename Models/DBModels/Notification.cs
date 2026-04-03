@@ -31,5 +31,13 @@ public partial class Notification
 
     public string? Metadata { get; set; }
 
+    public string? NotificationType { get; set; }
+
+    public string? InvoiceId { get; set; }
+
+    public string? InvoicePaymentId { get; set; }
+
+    public string? OrganizationId { get; set; }
+
     public virtual OrganizationClient? Client { get; set; }
 }

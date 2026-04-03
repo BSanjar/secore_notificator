@@ -53,5 +53,22 @@ public partial class OrganizationSetting
     /// </summary>
     public bool UseLowerCommissionToAgent { get; set; }
 
+    /// <summary>
+    /// new_only = только новый л/с; duplicate_only = только существующий; both = новый и существующий
+    /// </summary>
+    public string? InvoicePayCodeMode { get; set; }
+
+    public string? Email { get; set; }
+
+    public string? WhatsappPhone { get; set; }
+
+    public string? ContactPhone { get; set; }
+
+    public string? DirectorFullName { get; set; }
+
+    public string? Address { get; set; }
+
+    public string? LogoPath { get; set; }
+
     public virtual Organization Organization { get; set; } = null!;
 }

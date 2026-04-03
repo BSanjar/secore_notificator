@@ -42,18 +42,22 @@ namespace NotificationWorker
             // Регистрация сервисов отправки
             builder.Services.AddScoped<EmailSender>();
             builder.Services.AddScoped<TelegramSender>();
-            builder.Services.AddScoped<WhatsAppSender>();       // WABA (Meta) — не используется, оставлен на потом
-            builder.Services.AddScoped<TwilioWhatsAppSender>(); // WhatsApp через Twilio (используется)
+            builder.Services.AddScoped<WhatsAppSender>();      // WABA (Meta) — не используется, оставлен на потом
+            builder.Services.AddScoped<WappiWhatsAppSender>(); // WhatsApp через Wappi.pro (используется)
 
-            // Регистрация фонового сервиса
-            builder.Services.AddHostedService<NotificationWorkerService>();
+            // Регистрация фонового сервиса (в режиме теста можно отключать, чтобы отправлялось только сообщение при старте)
+            var disableWorker = builder.Configuration.GetValue<bool>("NotificationSettings:TestOnStartup:DisableWorker");
+            if (!disableWorker)
+            {
+                builder.Services.AddHostedService<NotificationWorkerService>();
+            }
 
             var host = builder.Build();
 
             var logger = host.Services.GetRequiredService<ILogger<Program>>();
             logger.LogInformation("NotificationWorker запущен");
 
-            // Опциональная тестовая отправка WhatsApp при старте (через Twilio; WABA не используется)
+            // Опциональная тестовая отправка WhatsApp при старте (через Wappi; WABA не используется)
             var testEnabled = builder.Configuration.GetValue<bool>("NotificationSettings:TestOnStartup:Enabled");
             var testPhone = builder.Configuration["NotificationSettings:TestOnStartup:WhatsAppPhone"];
             if (testEnabled && !string.IsNullOrWhiteSpace(testPhone))
@@ -61,45 +65,48 @@ namespace NotificationWorker
                 try
                 {
                     using var scope = host.Services.CreateScope();
-                    var twilioWhatsAppSender = scope.ServiceProvider.GetRequiredService<TwilioWhatsAppSender>();
-                    var ok = await twilioWhatsAppSender.SendAsync(testPhone, "Тест SECORE", "Это тестовое уведомление от NotificationWorker (Twilio). Если вы получили это сообщение — интеграция WhatsApp работает.");
+                    var wappiWhatsAppSender = scope.ServiceProvider.GetRequiredService<WappiWhatsAppSender>();
+                    var ok = await wappiWhatsAppSender.SendAsync(testPhone, null, "тестовое сообщение асинхронно");
                     if (ok)
-                        logger.LogInformation("Тестовое WhatsApp (Twilio) отправлено на {Phone}. Проверьте телефон.", testPhone);
+                        logger.LogInformation("Тестовое WhatsApp (Wappi) отправлено на {Phone}. Проверьте телефон.", testPhone);
                     else
-                        logger.LogWarning("Тестовое WhatsApp (Twilio) не удалось отправить на {Phone}. Проверьте NotificationSettings:Twilio (AccountSid, AuthToken, WhatsAppFrom).", testPhone);
+                        logger.LogWarning("Тестовое WhatsApp (Wappi) не удалось отправить на {Phone}. Проверьте NotificationSettings:Wappi (ApiToken, ProfileId, BaseUrl/SendMessagePath при необходимости).", testPhone);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Ошибка при тестовой отправке WhatsApp (Twilio) на {Phone}", testPhone);
+                    logger.LogError(ex, "Ошибка при тестовой отправке WhatsApp (Wappi) на {Phone}", testPhone);
                 }
             }
 
-            // Опциональная тестовая рассылка на почту при старте (NotificationSettings:TestOnStartup:Email:Enabled = true и To задан)
-            var emailTestEnabled = builder.Configuration.GetValue<bool>("NotificationSettings:TestOnStartup:Email:Enabled");
-            var emailTestTo = builder.Configuration["NotificationSettings:TestOnStartup:Email:To"];
-            if (emailTestEnabled && !string.IsNullOrWhiteSpace(emailTestTo))
+            if (!disableWorker)
             {
-                try
+                // Опциональная тестовая рассылка на почту при старте (NotificationSettings:TestOnStartup:Email:Enabled = true и To задан)
+                var emailTestEnabled = builder.Configuration.GetValue<bool>("NotificationSettings:TestOnStartup:Email:Enabled");
+                var emailTestTo = builder.Configuration["NotificationSettings:TestOnStartup:Email:To"];
+                if (emailTestEnabled && !string.IsNullOrWhiteSpace(emailTestTo))
                 {
-                    using var scope = host.Services.CreateScope();
-                    var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
-                    var addresses = EmailSender.ParseAddressList(emailTestTo);
-                    int sent;
-                    if (addresses.Count <= 1)
+                    try
                     {
-                        var ok = await emailSender.SendAsync(addresses.FirstOrDefault() ?? emailTestTo.Trim(), "Тест SECORE — рассылка", "<p>Это тестовое письмо от NotificationWorker. Если вы получили его — рассылка на почту настроена.</p>");
-                        sent = ok ? 1 : 0;
+                        using var scope = host.Services.CreateScope();
+                        var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
+                        var addresses = EmailSender.ParseAddressList(emailTestTo);
+                        int sent;
+                        if (addresses.Count <= 1)
+                        {
+                            var ok = await emailSender.SendAsync(addresses.FirstOrDefault() ?? emailTestTo.Trim(), "Тест SECORE — рассылка", "<p>Это тестовое письмо от NotificationWorker. Если вы получили его — рассылка на почту настроена.</p>");
+                            sent = ok ? 1 : 0;
+                        }
+                        else
+                            sent = await emailSender.SendBulkAsync(addresses, "Тест SECORE — рассылка", "<p>Это тестовое письмо от NotificationWorker. Если вы получили его — рассылка на почту настроена.</p>", 100);
+                        if (sent > 0)
+                            logger.LogInformation("Тестовая рассылка на почту: отправлено {Count} писем на {To}", sent, emailTestTo);
+                        else
+                            logger.LogWarning("Тестовая рассылка на почту не удалась. Проверьте SMTP в NotificationSettings:Email (SmtpUser, SmtpPassword, FromEmail).");
                     }
-                    else
-                        sent = await emailSender.SendBulkAsync(addresses, "Тест SECORE — рассылка", "<p>Это тестовое письмо от NotificationWorker. Если вы получили его — рассылка на почту настроена.</p>", 100);
-                    if (sent > 0)
-                        logger.LogInformation("Тестовая рассылка на почту: отправлено {Count} писем на {To}", sent, emailTestTo);
-                    else
-                        logger.LogWarning("Тестовая рассылка на почту не удалась. Проверьте SMTP в NotificationSettings:Email (SmtpUser, SmtpPassword, FromEmail).");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Ошибка при тестовой рассылке на почту на {To}", emailTestTo);
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Ошибка при тестовой рассылке на почту на {To}", emailTestTo);
+                    }
                 }
             }
 

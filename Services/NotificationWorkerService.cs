@@ -51,7 +51,7 @@ namespace NotificationWorker.Services
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             var emailSender = scope.ServiceProvider.GetRequiredService<EmailSender>();
             var telegramSender = scope.ServiceProvider.GetRequiredService<TelegramSender>();
-            var twilioWhatsAppSender = scope.ServiceProvider.GetRequiredService<TwilioWhatsAppSender>();
+            var wappiWhatsAppSender = scope.ServiceProvider.GetRequiredService<WappiWhatsAppSender>();
 
             // Выбираем пачку уведомлений со статусом "new"
             var notifications = await db.Notifications
@@ -71,6 +71,8 @@ namespace NotificationWorker.Services
             {
                 try
                 {
+                    var channel = notification.Channel?.ToLower() ?? "email";
+
                     // Обновляем статус на "processing"
                     notification.Status = "processing";
                     notification.ProcessedAt = ParsersHelper.NowForTimestamp();
@@ -78,7 +80,6 @@ namespace NotificationWorker.Services
 
                     // Отправляем уведомление в зависимости от канала
                     bool success = false;
-                    var channel = notification.Channel?.ToLower() ?? "email";
 
                     switch (channel)
                     {
@@ -105,8 +106,8 @@ namespace NotificationWorker.Services
                         case "whatsapp":
                             if (!string.IsNullOrWhiteSpace(notification.ContactInfo))
                             {
-                                // Используется Twilio; WABA (WhatsAppSender) отложен из-за блокировок со стороны WhatsApp
-                                success = await twilioWhatsAppSender.SendAsync(
+                                // Используется Wappi.pro; WABA (WhatsAppSender) не используется, оставлен на потом
+                                success = await wappiWhatsAppSender.SendAsync(
                                     notification.ContactInfo,
                                     notification.Subject,
                                     notification.Message ?? "");

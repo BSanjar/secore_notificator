@@ -13,6 +13,8 @@ public partial class Agent
 
     public string? ApiPsw { get; set; }
 
+    public string? Allowlistip { get; set; }
+
     public virtual ICollection<AgentCommission> AgentCommissions { get; } = new List<AgentCommission>();
 
     public virtual ICollection<Transaction> Transactions { get; } = new List<Transaction>();
