@@ -15,8 +15,8 @@ namespace NotificationWorker.Services
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<NotificationWorkerService> _logger;
-        private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(10); // Проверка каждые 10 секунд
-        private readonly int _batchSize = 50; // Размер пачки для обработки
+        private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(10);
+        private readonly int _batchSize = 50;
 
         public NotificationWorkerService(
             IServiceProvider serviceProvider,
@@ -28,7 +28,10 @@ namespace NotificationWorker.Services
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("NotificationWorkerService запущен. Проверка каждые {Interval} секунд", _checkInterval.TotalSeconds);
+            _logger.LogInformation(
+                "NotificationWorkerService запущен. Проверка каждые {Interval} секунд, BatchSize={BatchSize}",
+                _checkInterval.TotalSeconds,
+                _batchSize);
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -41,8 +44,17 @@ namespace NotificationWorker.Services
                     _logger.LogError(ex, "Ошибка в NotificationWorkerService");
                 }
 
-                await Task.Delay(_checkInterval, stoppingToken);
+                try
+                {
+                    await Task.Delay(_checkInterval, stoppingToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
             }
+
+            _logger.LogInformation("NotificationWorkerService цикл остановлен");
         }
 
         private async Task ProcessNotificationsAsync(CancellationToken cancellationToken)
@@ -53,7 +65,6 @@ namespace NotificationWorker.Services
             var telegramSender = scope.ServiceProvider.GetRequiredService<TelegramSender>();
             var wappiWhatsAppSender = scope.ServiceProvider.GetRequiredService<WappiWhatsAppSender>();
 
-            // Выбираем пачку уведомлений со статусом "new"
             var notifications = await db.Notifications
                 .Where(n => n.Status == "new")
                 .OrderBy(n => n.CreatedAt)
@@ -62,7 +73,7 @@ namespace NotificationWorker.Services
 
             if (!notifications.Any())
             {
-                return; // Нет новых уведомлений
+                return;
             }
 
             _logger.LogInformation("Найдено {Count} новых уведомлений для обработки", notifications.Count);
@@ -73,12 +84,10 @@ namespace NotificationWorker.Services
                 {
                     var channel = notification.Channel?.ToLower() ?? "email";
 
-                    // Обновляем статус на "processing"
                     notification.Status = "processing";
                     notification.ProcessedAt = ParsersHelper.NowForTimestamp();
                     await db.SaveChangesAsync(cancellationToken);
 
-                    // Отправляем уведомление в зависимости от канала
                     bool success = false;
 
                     switch (channel)
@@ -91,6 +100,13 @@ namespace NotificationWorker.Services
                                     notification.Subject,
                                     notification.Message ?? "");
                             }
+                            else
+                            {
+                                _logger.LogWarning(
+                                    "Уведомление {NotificationId}: пустой ContactInfo для email. ClientId={ClientId}",
+                                    notification.Id,
+                                    notification.ClientId);
+                            }
                             break;
 
                         case "telegram":
@@ -101,31 +117,46 @@ namespace NotificationWorker.Services
                                     notification.Subject,
                                     notification.Message ?? "");
                             }
+                            else
+                            {
+                                _logger.LogWarning(
+                                    "Уведомление {NotificationId}: пустой ContactInfo для telegram. ClientId={ClientId}",
+                                    notification.Id,
+                                    notification.ClientId);
+                            }
                             break;
 
                         case "whatsapp":
                             if (!string.IsNullOrWhiteSpace(notification.ContactInfo))
                             {
-                                // Используется Wappi.pro; WABA (WhatsAppSender) не используется, оставлен на потом
                                 success = await wappiWhatsAppSender.SendAsync(
                                     notification.ContactInfo,
                                     notification.Subject,
                                     notification.Message ?? "");
                             }
+                            else
+                            {
+                                _logger.LogWarning(
+                                    "Уведомление {NotificationId}: пустой ContactInfo для whatsapp. ClientId={ClientId}",
+                                    notification.Id,
+                                    notification.ClientId);
+                            }
                             break;
 
                         default:
-                            _logger.LogWarning("Неизвестный канал уведомления: {Channel} для уведомления {NotificationId}", 
-                                channel, notification.Id);
+                            _logger.LogWarning(
+                                "Неизвестный канал {Channel} для уведомления {NotificationId}. ClientId={ClientId}",
+                                channel,
+                                notification.Id,
+                                notification.ClientId);
                             notification.Status = "failed";
                             notification.ErrorMessage = $"Неизвестный канал: {channel}";
                             break;
                     }
 
-                    // Обновляем статус в зависимости от результата
                     if (channel != "email" && channel != "telegram" && channel != "whatsapp")
                     {
-                        // Уже обработано выше
+                        // уже failed выше
                     }
                     else if (success)
                     {
@@ -137,15 +168,13 @@ namespace NotificationWorker.Services
                     {
                         notification.Status = "failed";
                         notification.RetryCount = (notification.RetryCount ?? 0) + 1;
-                        
-                        // Если превышен лимит попыток, оставляем как failed
+
                         if (notification.RetryCount > 5)
                         {
                             notification.ErrorMessage = "Превышен лимит попыток отправки";
                         }
                         else
                         {
-                            // Возвращаем статус на "new" для повторной попытки
                             notification.Status = "new";
                             notification.ProcessedAt = null;
                         }
@@ -156,18 +185,30 @@ namespace NotificationWorker.Services
                     if (success)
                     {
                         _logger.LogInformation(
-                            "Уведомление {NotificationId} отправлено через канал {Channel}",
+                            "Уведомление {NotificationId} отправлено. Channel={Channel}, ClientId={ClientId}",
                             notification.Id,
-                            channel);
+                            channel,
+                            notification.ClientId);
+                    }
+                    else if (channel is "email" or "telegram" or "whatsapp")
+                    {
+                        _logger.LogWarning(
+                            "Уведомление {NotificationId} не отправлено. Channel={Channel}, ClientId={ClientId}, Status={Status}, RetryCount={RetryCount}",
+                            notification.Id,
+                            channel,
+                            notification.ClientId,
+                            notification.Status,
+                            notification.RetryCount);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex,
-                        "Ошибка при обработке уведомления {NotificationId}",
-                        notification.Id);
+                        "Ошибка при обработке уведомления {NotificationId}. ClientId={ClientId}, Channel={Channel}",
+                        notification.Id,
+                        notification.ClientId,
+                        notification.Channel);
 
-                    // Возвращаем статус обратно на "new" для повторной попытки
                     notification.Status = "new";
                     notification.ProcessedAt = null;
                     notification.RetryCount = (notification.RetryCount ?? 0) + 1;
@@ -175,7 +216,6 @@ namespace NotificationWorker.Services
 
                     if (notification.RetryCount > 5)
                     {
-                        // После 5 попыток помечаем как failed
                         notification.Status = "failed";
                     }
 
@@ -191,4 +231,3 @@ namespace NotificationWorker.Services
         }
     }
 }
-

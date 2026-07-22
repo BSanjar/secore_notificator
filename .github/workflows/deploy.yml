@@ -77,6 +77,23 @@ jobs:
             docker network create secore_net || true
             docker network connect secore_net app_postgres || true
 
+            echo "📁 Ensuring host log directories /secore/..."
+            if [ ! -d /secore/notificator ]; then
+              if command -v sudo >/dev/null 2>&1; then
+                sudo mkdir -p /secore/mainSystem /secore/notificator /secore/sheduler
+                sudo chmod 777 /secore /secore/mainSystem /secore/notificator /secore/sheduler
+              else
+                echo "❌ Cannot create /secore (no sudo). Create once on server:"
+                echo "   sudo mkdir -p /secore/mainSystem /secore/notificator /secore/sheduler && sudo chmod -R 777 /secore"
+                exit 1
+              fi
+            else
+              if command -v sudo >/dev/null 2>&1; then
+                sudo mkdir -p /secore/mainSystem /secore/notificator /secore/sheduler
+                sudo chmod 777 /secore/mainSystem /secore/notificator /secore/sheduler 2>/dev/null || true
+              fi
+            fi
+
             echo "⬇️ Pulling latest image: $IMAGE_TAG"
             docker pull $IMAGE_TAG
 
@@ -86,10 +103,15 @@ jobs:
               --network secore_net \
               --restart always \
               -p $PORT:80 \
+              -v /secore/notificator:/secore/notificator \
               -e ASPNETCORE_ENVIRONMENT=$ENVIRONMENT \
               -e ASPNETCORE_URLS=http://+:80 \
               -e ConnectionStrings__DefaultConnection="$DB_CONNECTION_STRING" \
+              -e SecoreLogging__RootPath=/secore/notificator \
+              -e SecoreLogging__FilePrefix=notificator \
               $IMAGE_TAG
 
             echo "✅ Deployment finished."
             docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+            echo "📝 Logs volume: /secore/notificator"
+            ls -la /secore/notificator || sudo ls -la /secore/notificator || true
