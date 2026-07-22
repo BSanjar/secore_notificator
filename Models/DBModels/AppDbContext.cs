@@ -339,56 +339,49 @@ public partial class AppDbContext : DbContext
 
         modelBuilder.Entity<Notification>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("notifications_pkey");
+            // Схема как в основном secore / InitialCreate (без invoice_id, organization_id и т.п.)
+            entity.HasKey(e => e.Id).HasName("notifications_pk");
 
             entity.ToTable("notifications");
-
-            entity.HasIndex(e => new { e.NotificationType, e.OrganizationId, e.Channel }, "ix_notifications_type_org_channel_uq")
-                .IsUnique()
-                .HasFilter("(organization_id IS NOT NULL)");
-
-            entity.HasIndex(e => new { e.NotificationType, e.InvoicePaymentId, e.Channel }, "ix_notifications_type_payment_channel_uq")
-                .IsUnique()
-                .HasFilter("(invoice_payment_id IS NOT NULL)");
 
             entity.Property(e => e.Id)
                 .HasColumnType("character varying")
                 .HasColumnName("id");
             entity.Property(e => e.Channel)
+                .HasComment("email, telegram, whatsapp")
                 .HasColumnType("character varying")
                 .HasColumnName("channel");
             entity.Property(e => e.ClientId)
                 .HasColumnType("character varying")
                 .HasColumnName("client_id");
             entity.Property(e => e.ContactInfo)
+                .HasComment("email, телефон, telegram chat_id")
                 .HasColumnType("character varying")
                 .HasColumnName("contact_info");
             entity.Property(e => e.CreatedAt)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
-            entity.Property(e => e.ErrorMessage).HasColumnName("error_message");
-            entity.Property(e => e.InvoiceId)
-                .HasColumnType("character varying")
-                .HasColumnName("invoice_id");
-            entity.Property(e => e.InvoicePaymentId)
-                .HasColumnType("character varying")
-                .HasColumnName("invoice_payment_id");
-            entity.Property(e => e.Message).HasColumnName("message");
-            entity.Property(e => e.Metadata).HasColumnName("metadata");
-            entity.Property(e => e.NotificationType)
-                .HasColumnType("character varying")
-                .HasColumnName("notification_type");
-            entity.Property(e => e.OrganizationId)
-                .HasColumnType("character varying")
-                .HasColumnName("organization_id");
+            entity.Property(e => e.ErrorMessage)
+                .HasColumnType("text")
+                .HasColumnName("error_message");
+            entity.Property(e => e.Message)
+                .HasColumnType("text")
+                .HasColumnName("message");
+            entity.Property(e => e.Metadata)
+                .HasColumnType("text")
+                .HasColumnName("metadata");
             entity.Property(e => e.ProcessedAt)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("processed_at");
-            entity.Property(e => e.RetryCount).HasColumnName("retry_count");
+            entity.Property(e => e.RetryCount)
+                .HasDefaultValueSql("0")
+                .HasColumnName("retry_count");
             entity.Property(e => e.SentAt)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("sent_at");
             entity.Property(e => e.Status)
+                .HasDefaultValueSql("'new'")
+                .HasComment("new - новое, ожидает обработки\r\nprocessing - в процессе обработки\r\nsent - отправлено\r\nfailed - ошибка отправки")
                 .HasColumnType("character varying")
                 .HasColumnName("status");
             entity.Property(e => e.Subject)
@@ -397,8 +390,7 @@ public partial class AppDbContext : DbContext
 
             entity.HasOne(d => d.Client).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.ClientId)
-                .OnDelete(DeleteBehavior.SetNull)
-                .HasConstraintName("fk_notifications_client");
+                .HasConstraintName("notifications_fk");
         });
 
         modelBuilder.Entity<OrgClientGroup>(entity =>
