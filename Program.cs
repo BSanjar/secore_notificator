@@ -26,11 +26,12 @@ namespace NotificationWorker
             builder.Logging.AddConsole();
             builder.Logging.AddDebug();
 
-            // Регистрация базы данных
+            // Регистрация базы данных (env ConnectionStrings__DefaultConnection перекрывает appsettings)
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
             if (string.IsNullOrWhiteSpace(connectionString))
             {
-                throw new InvalidOperationException("ConnectionString 'DefaultConnection' не найден в appsettings.json");
+                throw new InvalidOperationException(
+                    "ConnectionString 'DefaultConnection' не найден. Задайте его в appsettings.json или через env ConnectionStrings__DefaultConnection.");
             }
 
             builder.Services.AddDbContext<AppDbContext>(options =>

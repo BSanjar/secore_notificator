@@ -41,13 +41,20 @@ jobs:
         env:
           IMAGE_TAG: ${{ env.IMAGE_TAG }}
           GITHUB_REF_NAME: ${{ github.ref_name }}
+          DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: IMAGE_TAG,GITHUB_REF_NAME
+          envs: IMAGE_TAG,GITHUB_REF_NAME,DB_CONNECTION_STRING
           script: |
             set -e
+
+            if [ -z "$DB_CONNECTION_STRING" ]; then
+              echo "❌ ERROR: GitHub Secret DB_CONNECTION_STRING is empty or not set."
+              echo "   Expected format: Host=app_postgres;Port=5432;Database=appdb;Username=appuser;Password=..."
+              exit 1
+            fi
 
             if [ "$GITHUB_REF_NAME" == "test" ]; then
               PORT=8061
@@ -66,16 +73,22 @@ jobs:
             docker rm $CONTAINER || true
             docker image prune -af || true
 
+            echo "🌐 Ensuring Docker network secore_net and postgres connectivity..."
+            docker network create secore_net || true
+            docker network connect secore_net app_postgres || true
+
             echo "⬇️ Pulling latest image: $IMAGE_TAG"
             docker pull $IMAGE_TAG
 
             echo "🧩 Starting new container..."
             docker run -d \
               --name $CONTAINER \
+              --network secore_net \
               --restart always \
               -p $PORT:80 \
               -e ASPNETCORE_ENVIRONMENT=$ENVIRONMENT \
               -e ASPNETCORE_URLS=http://+:80 \
+              -e ConnectionStrings__DefaultConnection="$DB_CONNECTION_STRING" \
               $IMAGE_TAG
 
             echo "✅ Deployment finished."
